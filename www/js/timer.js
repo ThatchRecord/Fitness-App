@@ -1,15 +1,25 @@
 // --- Utilidades de Tiempo y Sonido ---
 let audioCtx = null;
 
+function desbloquearAudio() {
+  // Se llama en el primer toque para evitar el bloqueo de Android
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
 function reproducirPitido() {
   try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) return;
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota La5
-    osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5); // Baja a La4
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
     
     gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
@@ -20,24 +30,39 @@ function reproducirPitido() {
     osc.start();
     osc.stop(audioCtx.currentTime + 0.5);
   } catch (e) {
-    console.warn("Audio no permitido aún (requiere interacción):", e);
+    console.warn("Error al reproducir audio:", e);
   }
 }
 
-async function vibrarNativo() {
-  // Intentar usar el plugin nativo de Capacitor (solo funciona en el APK de Android)
-  try {
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
+async function alertaFinTemporizador() {
+  // 1. Sonido
+  reproducirPitido();
+
+  // 2. Vibración
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
+    try {
       await window.Capacitor.Plugins.Haptics.vibrate({ duration: 1000 });
-      return;
-    }
-  } catch (e) {
-    console.warn("Haptics falló, usando fallback web");
+    } catch (e) { console.warn("Haptics error", e); }
+  } else if (navigator.vibrate) {
+    navigator.vibrate([500, 200, 500, 200, 500]); // Patrón largo
   }
-  
-  // Fallback para navegador web
-  if (navigator.vibrate) {
-    navigator.vibrate([500, 200, 500]); // Patrón: 500ms vibra, 200 pausa, 500ms vibra
+
+  // 3. Linterna (Flash)
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Torch) {
+    try {
+      const Torch = window.Capacitor.Plugins.Torch;
+      await Torch.enable();
+      // Parpadeo: apagar y encender a los 300ms
+      setTimeout(async () => {
+        await Torch.disable();
+        setTimeout(async () => {
+          await Torch.enable();
+          setTimeout(() => Torch.disable(), 300);
+        }, 300);
+      }, 300);
+    } catch (e) {
+      console.warn("Error con la linterna (quizás no hay hardware o permisos):", e);
+    }
   }
 }
 
@@ -66,15 +91,14 @@ function updateCronoDisplay() {
 }
 
 btnCronoStart.addEventListener('click', () => {
+  desbloquearAudio(); // Desbloquear sonido
   if (cronoRunning) {
-    // Pausar
     cronoAccumulated += Date.now() - cronoStartTime;
     clearInterval(cronoInterval);
     cronoRunning = false;
     btnCronoStart.textContent = '▶ Reanudar';
     btnCronoStop.style.display = 'block';
   } else {
-    // Iniciar
     cronoStartTime = Date.now();
     cronoInterval = setInterval(updateCronoDisplay, 1000);
     cronoRunning = true;
@@ -99,21 +123,34 @@ btnCronoStop.addEventListener('click', () => {
 let timerInterval = null;
 let timerEndTime = 0;
 let timerRunning = false;
-let defaultRestSeconds = 60;
+let defaultRestMinutes = 1;
 
 const timerDisplay = document.getElementById('timer-display');
 const btnTimerStart = document.getElementById('btn-timer-start');
 const btnTimerStop = document.getElementById('btn-timer-stop');
 
-window.setRestTime = function(seconds) {
+window.setRestTime = function(minutes) {
   if (timerRunning) return;
-  defaultRestSeconds = seconds;
-  timerDisplay.textContent = formatTimeTimer(seconds);
+  defaultRestMinutes = minutes;
+  timerDisplay.textContent = formatTimeTimer(minutes * 60);
+};
+
+window.setRestTimeCustom = function() {
+  if (timerRunning) return;
+  const input = prompt("Introduce los minutos de descanso (puedes usar decimales, ej: 1.5):", defaultRestMinutes);
+  if (input === null) return; // Cancelado
+  
+  const min = parseFloat(input);
+  if (!isNaN(min) && min > 0) {
+    setRestTime(min);
+  } else {
+    alert("Por favor, introduce un número válido mayor que 0.");
+  }
 };
 
 function formatTimeTimer(totalSecs) {
-  const m = Math.floor(totalSecs / 60).toString().padStart(2, '0');
-  const s = (totalSecs % 60).toString().padStart(2, '0');
+  const m = Math.floor(totalSecs / 60).toString().padStart(1, '0');
+  const s = Math.floor(totalSecs % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 }
 
@@ -132,19 +169,16 @@ function updateTimerDisplay() {
     btnTimerStart.style.display = 'block';
     btnTimerStop.style.display = 'none';
     
-    // ALARMA
-    vibrarNativo();
-    reproducirPitido();
+    alertaFinTemporizador();
   }
 }
 
 btnTimerStart.addEventListener('click', () => {
-  if (timerRunning) return; // No hacer nada si ya corre
+  if (timerRunning) return;
   
-  // Desbloquear audio en el primer toque
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  desbloquearAudio(); // CRUCIAL: desbloquear audio en el toque
 
-  timerEndTime = Date.now() + (defaultRestSeconds * 1000);
+  timerEndTime = Date.now() + (defaultRestMinutes * 60 * 1000);
   timerInterval = setInterval(updateTimerDisplay, 200);
   timerRunning = true;
   
@@ -157,11 +191,11 @@ btnTimerStart.addEventListener('click', () => {
 btnTimerStop.addEventListener('click', () => {
   clearInterval(timerInterval);
   timerRunning = false;
-  timerDisplay.textContent = formatTimeTimer(defaultRestSeconds);
+  timerDisplay.textContent = formatTimeTimer(defaultRestMinutes * 60);
   timerDisplay.style.color = "var(--text)";
   btnTimerStart.style.display = 'block';
   btnTimerStop.style.display = 'none';
 });
 
 // Inicializar display
-timerDisplay.textContent = formatTimeTimer(defaultRestSeconds);
+timerDisplay.textContent = formatTimeTimer(defaultRestMinutes * 60);
