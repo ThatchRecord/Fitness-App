@@ -1,0 +1,8 @@
+{
+  "appId": "com.tunombre.fitness",
+  "appName": "Mi Fitness",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
