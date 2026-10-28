@@ -7,7 +7,6 @@ on:
 
 jobs:
   build:
-    # Fijamos la versión de Ubuntu para evitar la migración automática a 26.04
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -37,6 +36,18 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      # NUEVO PASO: Forzar permiso de vibración
+      - name: Force Vibration Permission
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if grep -q "android.permission.VIBRATE" "$MANIFEST"; then
+            echo "El permiso de vibración ya existe."
+          else
+            # Inserta el permiso justo antes de la etiqueta <application>
+            sed -i 's/<application/<uses-permission android:name="android.permission.VIBRATE" \/>\n    <application/' "$MANIFEST"
+            echo "Permiso de vibración inyectado."
+          fi
 
       - name: Build APK
         run: |
