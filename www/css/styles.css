@@ -288,3 +288,76 @@ input[type="number"]:focus, select:focus {
 .btn-danger:active {
   background: #dc2626;
 }
+
+/* --- Estilos para Registro de Entrenamiento --- */
+.input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.input-group input {
+  flex: 1;
+  margin-top: 0;
+}
+
+.input-group button {
+  width: auto;
+  padding: 0 16px;
+  margin-top: 0;
+  font-size: 24px;
+}
+
+.ejercicio-card {
+  background: var(--bg);
+  border: 1px solid var(--surface-2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.ejercicio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 40px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.set-row input {
+  margin-top: 0;
+  padding: 8px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.set-row button {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-small-add {
+  background: var(--surface-2);
+  color: var(--text);
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  width: 100%;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 4px;
+}
