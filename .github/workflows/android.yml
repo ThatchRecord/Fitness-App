@@ -37,25 +37,30 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # --- INYECCIÓN DE PERMISOS ---
       - name: Inject Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           
-          # Inyectar permiso de vibración si no existe
-          if grep -q "android.permission.VIBRATE" "$MANIFEST"; then
-            echo "Permiso de vibración ya existe."
-          else
-            sed -i 's/<application/<uses-permission android:name="android.permission.VIBRATE" \/>\n    <application/' "$MANIFEST"
-          fi
+          inject_permission() {
+            local perm=$1
+            if ! grep -q "$perm" "$MANIFEST"; then
+              sed -i "s/<application/<uses-permission android:name=\"$perm\" \/>\n    <application/" "$MANIFEST"
+              echo "Permiso inyectado: $perm"
+            fi
+          }
 
-          # Inyectar permiso de optimización de batería si no existe
-          if grep -q "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" "$MANIFEST"; then
-            echo "Permiso de batería ya existe."
-          else
-            sed -i 's/<application/<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" \/>\n    <application/' "$MANIFEST"
-          fi
-      # -----------------------------
+          # Permisos base y de batería
+          inject_permission "android.permission.VIBRATE"
+          inject_permission "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+          
+          # Permisos requeridos por el plugin de alarma nativo
+          inject_permission "android.permission.SCHEDULE_EXACT_ALARM"
+          inject_permission "android.permission.USE_EXACT_ALARM"
+          inject_permission "android.permission.FOREGROUND_SERVICE"
+          inject_permission "android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
+          inject_permission "android.permission.POST_NOTIFICATIONS"
+          inject_permission "android.permission.WAKE_LOCK"
+          inject_permission "android.permission.RECEIVE_BOOT_COMPLETED"
 
       - name: Build APK
         run: |
