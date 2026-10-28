@@ -25,7 +25,7 @@
         <div id="cronometro-display" class="display-time">00:00:00</div>
         <div class="btn-group">
           <button id="btn-crono-start" class="btn-primary">▶ Iniciar</button>
-          <button id="btn-crono-stop" class="btn-secondary" style="display: none;">⏹ Detener</button>
+          <button id="btn-crono-stop" class="btn-secondary" style="display: none;">⏹ Terminar y Guardar</button>
         </div>
       </div>
 
@@ -44,6 +44,19 @@
         <div class="btn-group">
           <button id="btn-timer-start" class="btn-primary">▶ Iniciar Descanso</button>
           <button id="btn-timer-stop" class="btn-secondary" style="display: none;">⏹ Cancelar</button>
+        </div>
+      </div>
+
+      <!-- REGISTRO DE SERIES -->
+      <div class="card" style="margin-top: 24px;">
+        <h2>📝 Registro de series</h2>
+        <div class="input-group">
+          <input type="text" id="nuevo-ejercicio-nombre" placeholder="Nombre del ejercicio (ej. Press Banca)">
+          <button id="btn-add-ejercicio" style="background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">+</button>
+        </div>
+        <div id="lista-ejercicios-sesion">
+          <!-- Aquí se inyectarán los ejercicios añadidos -->
+          <p class="placeholder" style="font-size: 14px;">Añade un ejercicio para empezar a registrar series.</p>
         </div>
       </div>
     </section>
@@ -108,21 +121,21 @@
     </section>
 
     <!-- PESTAÑA: AJUSTES -->
-<section class="view" data-view="ajustes">
-  <h1>Ajustes</h1>
-  
-  <!-- NUEVO BOTÓN -->
-  <div class="card">
-    <h2>🔋 Optimización de batería</h2>
-    <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">
-      Si notas que la vibración falla con el modo de ahorro activo, pulsa aquí para darle prioridad a la app.
-    </p>
-    <button id="btn-battery-opt" class="btn-secondary" style="width: 100%;">Desactivar ahorro de batería</button>
-    <p id="battery-status-text" style="color: var(--text-muted); font-size: 14px; margin-top: 12px; text-align: center;"></p>
-  </div>
-  
-  <p class="placeholder">Aquí irán más ajustes en el futuro.</p>
-</section>
+    <section class="view" data-view="ajustes">
+      <h1>Ajustes</h1>
+      
+      <!-- BOTÓN DE BATERÍA -->
+      <div class="card">
+        <h2>🔋 Optimización de batería</h2>
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">
+          Si notas que la vibración falla con el modo de ahorro activo, pulsa aquí para darle prioridad a la app.
+        </p>
+        <button id="btn-battery-opt" class="btn-secondary" style="width: 100%;">Desactivar ahorro de batería</button>
+        <p id="battery-status-text" style="color: var(--text-muted); font-size: 14px; margin-top: 12px; text-align: center;"></p>
+      </div>
+      
+      <p class="placeholder">Aquí irán más ajustes en el futuro.</p>
+    </section>
   </main>
 
   <!-- BARRA DE NAVEGACIÓN INFERIOR -->
@@ -134,7 +147,7 @@
     <button class="tab" data-tab="ajustes" role="tab"><span class="tab-icon">⚙️</span><span class="tab-label">Ajustes</span></button>
   </nav>
 
-  <!-- NUEVO: OVERLAY DE ALARMA -->
+  <!-- OVERLAY DE ALARMA -->
   <div id="alarm-overlay" class="alarm-overlay hidden">
     <h2 style="color: var(--accent); font-size: 32px;">¡Descanso terminado!</h2>
     <p style="color: var(--text-muted); margin-bottom: 0;">Tiempo desde que acabó:</p>
@@ -146,6 +159,7 @@
   <script src="https://unpkg.com/dexie@4.0.8/dist/dexie.min.js"></script>
   <script src="js/pae.js"></script>
   <script src="js/timer.js"></script>
+  <script src="js/workout.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
