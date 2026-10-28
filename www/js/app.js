@@ -1,7 +1,7 @@
 (() => {
   // --- 1. Base de Datos (Dexie) ---
   const db = new Dexie('FitnessAppDB');
-  db.version(1).stores({
+  db.version(2).stores({
     medidas: '++id, fecha' // '++id' es autoincremental
   });
 
