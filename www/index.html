@@ -14,8 +14,8 @@
       <h1>Hoy</h1>
       <p class="placeholder">Aquí irá el botón de empezar entrenamiento y el resumen del día.</p>
     </section>
-    
-    <!-- PANTALLA DE ENTRENAR -->
+
+    <!-- PESTAÑA: ENTRENAR -->
     <section class="view" data-view="entrenar">
       <h1>Entrenar</h1>
       
@@ -123,14 +123,18 @@
     <button class="tab" data-tab="ajustes" role="tab"><span class="tab-icon">⚙️</span><span class="tab-label">Ajustes</span></button>
   </nav>
 
+  <!-- NUEVO: OVERLAY DE ALARMA -->
+  <div id="alarm-overlay" class="alarm-overlay hidden">
+    <h2 style="color: var(--accent); font-size: 32px;">¡Descanso terminado!</h2>
+    <p style="color: var(--text-muted); margin-bottom: 0;">Tiempo desde que acabó:</p>
+    <div id="alarm-elapsed" class="display-time" style="font-size: 64px; color: var(--text);">+00:00</div>
+    <button id="btn-stop-alarm" class="btn-primary btn-danger" style="margin-top: 32px; font-size: 24px;">⏹ Detener Alarma</button>
+  </div>
+
   <!-- SCRIPTS -->
-  <!-- 1. Librería Dexie (Base de datos local) -->
   <script src="https://unpkg.com/dexie@4.0.8/dist/dexie.min.js"></script>
-  <!-- 2. Lógica de la calculadora PAE -->
   <script src="js/pae.js"></script>
-  <!-- 3. Lógica del cronómetro y temporizador -->
   <script src="js/timer.js"></script>
-  <!-- 4. Lógica principal de la app -->
   <script src="js/app.js"></script>
 </body>
 </html>
