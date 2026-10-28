@@ -33,20 +33,35 @@ function reproducirPitido() {
 }
 
 async function vibrarNativo() {
-  // 1. Intentar con el plugin de Capacitor
+  // 1. Intentar con el plugin de Capacitor de varias formas
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
     try {
-      // Patrón de vibración nativo
-      await window.Capacitor.Plugins.Haptics.vibrate({ duration: 600 });
+      const Haptics = window.Capacitor.Plugins.Haptics;
+      
+      // Intentar un impacto fuerte (a veces se siente más que vibrate)
+      if (Haptics.impact) {
+        await Haptics.impact({ style: 'HEAVY' });
+      }
+      
+      // Intentar la vibración estándar con duración
+      if (Haptics.vibrate) {
+        await Haptics.vibrate({ duration: 1000 });
+      }
       return;
     } catch (e) {
-      console.warn("Fallo Haptics nativo, usando fallback web");
+      console.warn("Fallo Haptics nativo:", e);
     }
   }
   
-  // 2. Fallback para navegador (o si falla Capacitor)
+  // 2. Fallback para navegador web (WebView)
   if (navigator.vibrate) {
-    navigator.vibrate([600, 200, 600]); 
+    // Patrón: 800ms vibrando, 200 pausa, 800ms vibrando
+    const exito = navigator.vibrate([800, 200, 800]);
+    if (!exito) {
+      console.warn("navigator.vibrate bloqueado por el sistema");
+    }
+  } else {
+    console.warn("Este dispositivo no soporta navigator.vibrate");
   }
 }
 
