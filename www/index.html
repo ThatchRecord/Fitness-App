@@ -14,8 +14,8 @@
       <h1>Hoy</h1>
       <p class="placeholder">Aquí irá el botón de empezar entrenamiento y el resumen del día.</p>
     </section>
-
-    <!-- PESTAÑA: ENTRENAR -->
+    
+    <!-- PANTALLA DE ENTRENAR -->
     <section class="view" data-view="entrenar">
       <h1>Entrenar</h1>
       
@@ -32,14 +32,14 @@
       <!-- TEMPORIZADOR DE DESCANSO -->
       <div class="card text-center" style="margin-top: 24px;">
         <h2>⏳ Descanso entre series</h2>
-        <div id="timer-display" class="display-time">01:00</div>
+        <div id="timer-display" class="display-time">1:00</div>
         <div class="grid-3" style="margin-bottom: 12px;">
-          <button class="btn-small btn-outline" onclick="setRestTime(30)">30s</button>
-          <button class="btn-small btn-outline" onclick="setRestTime(60)">60s</button>
-          <button class="btn-small btn-outline" onclick="setRestTime(90)">90s</button>
-          <button class="btn-small btn-outline" onclick="setRestTime(120)">120s</button>
-          <button class="btn-small btn-outline" onclick="setRestTime(180)">180s</button>
-          <button class="btn-small btn-outline" onclick="setRestTime(0)">Custom</button>
+          <button class="btn-small btn-outline" onclick="setRestTime(1)">1 min</button>
+          <button class="btn-small btn-outline" onclick="setRestTime(2)">2 min</button>
+          <button class="btn-small btn-outline" onclick="setRestTime(3)">3 min</button>
+          <button class="btn-small btn-outline" onclick="setRestTime(5)">5 min</button>
+          <button class="btn-small btn-outline" onclick="setRestTime(10)">10 min</button>
+          <button class="btn-small btn-outline" onclick="setRestTimeCustom()">Custom</button>
         </div>
         <div class="btn-group">
           <button id="btn-timer-start" class="btn-primary">▶ Iniciar Descanso</button>
