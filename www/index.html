@@ -19,9 +19,43 @@
       <p class="placeholder">Aquí irán el cronómetro, la lista de ejercicios y las series.</p>
     </section>
 
+    <!-- PANTALLA DE MEDIDAS -->
     <section class="view" data-view="medidas">
       <h1>Medidas</h1>
-      <p class="placeholder">Aquí irá el formulario de medidas y la calculadora PAE.</p>
+      
+      <div class="card">
+        <label>Sexo (temporal) <select id="sexo-select"><option value="">Selecciona...</option><option value="hombre">Hombre</option><option value="mujer">Mujer</option></select></label>
+        <label>Peso real (báscula) [kg] <input type="number" step="0.1" id="peso-real" placeholder="Ej: 72.5"></label>
+      </div>
+
+      <div class="card pae-card">
+        <h2>🧮 PAE estimado</h2>
+        <div id="pae-resultado" class="pae-value">--</div>
+        <div id="pae-detalle" class="pae-detail">Introduce las medidas para calcular</div>
+        <p class="disclaimer">Medición orientativa con variabilidad considerable.</p>
+      </div>
+
+      <div class="card">
+        <h3>Circunferencias obligatorias (cm)</h3>
+        <div class="grid-2">
+          <label>Tórax <input type="number" step="0.1" id="torax"></label>
+          <label>Cintura <input type="number" step="0.1" id="cintura"></label>
+          <label>Abdomen <input type="number" step="0.1" id="abdomen"></label>
+          <label>Glúteos <input type="number" step="0.1" id="gluteos"></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Apéndices (cm) — al menos uno por par</h3>
+        <div class="grid-2">
+          <label>Muslo izq. <input type="number" step="0.1" id="muslo-izq"></label>
+          <label>Muslo der. <input type="number" step="0.1" id="muslo-der"></label>
+          <label>Brazo izq. <input type="number" step="0.1" id="brazo-izq"></label>
+          <label>Brazo der. <input type="number" step="0.1" id="brazo-der"></label>
+        </div>
+      </div>
+
+      <button id="guardar-medidas" class="btn-primary">💾 Guardar medidas</button>
     </section>
 
     <section class="view" data-view="progreso">
@@ -36,23 +70,14 @@
   </main>
 
   <nav class="tabbar" role="tablist">
-    <button class="tab" data-tab="hoy" role="tab" aria-selected="true">
-      <span class="tab-icon">🏠</span><span class="tab-label">Hoy</span>
-    </button>
-    <button class="tab" data-tab="entrenar" role="tab" aria-selected="false">
-      <span class="tab-icon">🏋️</span><span class="tab-label">Entrenar</span>
-    </button>
-    <button class="tab" data-tab="medidas" role="tab" aria-selected="false">
-      <span class="tab-icon">📏</span><span class="tab-label">Medidas</span>
-    </button>
-    <button class="tab" data-tab="progreso" role="tab" aria-selected="false">
-      <span class="tab-icon">📈</span><span class="tab-label">Progreso</span>
-    </button>
-    <button class="tab" data-tab="ajustes" role="tab" aria-selected="false">
-      <span class="tab-icon">⚙️</span><span class="tab-label">Ajustes</span>
-    </button>
+    <button class="tab" data-tab="hoy" role="tab"><span class="tab-icon">🏠</span><span class="tab-label">Hoy</span></button>
+    <button class="tab" data-tab="entrenar" role="tab"><span class="tab-icon">🏋️</span><span class="tab-label">Entrenar</span></button>
+    <button class="tab" data-tab="medidas" role="tab"><span class="tab-icon">📏</span><span class="tab-label">Medidas</span></button>
+    <button class="tab" data-tab="progreso" role="tab"><span class="tab-icon">📈</span><span class="tab-label">Progreso</span></button>
+    <button class="tab" data-tab="ajustes" role="tab"><span class="tab-icon">⚙️</span><span class="tab-label">Ajustes</span></button>
   </nav>
 
+  <script src="js/pae.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
