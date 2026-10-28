@@ -1,4 +1,4 @@
-// --- Utilidades de Tiempo y Sonido ---
+// --- 1. Utilidades de Sonido y Permisos ---
 let audioCtx = null;
 
 function desbloquearAudio() {
@@ -16,9 +16,11 @@ function reproducirPitido() {
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     
+    // Onda cuadrada para que suene fuerte y agudo
     osc.type = 'square'; 
     osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
     
+    // Volumen al máximo
     gainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
     
@@ -30,16 +32,13 @@ function reproducirPitido() {
   } catch (e) {}
 }
 
+// --- 2. Integraciones Nativas (Vibración, Linterna, Servicios) ---
 async function vibrarNativo() {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
     try {
       const Haptics = window.Capacitor.Plugins.Haptics;
-      if (Haptics.impact) {
-        await Haptics.impact({ style: 'HEAVY' });
-      }
-      if (Haptics.vibrate) {
-        await Haptics.vibrate({ duration: 800 });
-      }
+      if (Haptics.impact) await Haptics.impact({ style: 'HEAVY' });
+      if (Haptics.vibrate) await Haptics.vibrate({ duration: 800 });
       return;
     } catch (e) {}
   }
@@ -64,43 +63,31 @@ async function parpadearLinterna() {
   }
 }
 
-function dispararAlerta() {
-  reproducirPitido();
-  vibrarNativo();
-  parpadearLinterna();
-}
-
-// --- Variables de Estado de la Alarma ---
-let alarmLoopInterval = null;
-let alarmTimerInterval = null;
-let alarmStartTime = 0;
-
-const alarmOverlay = document.getElementById('alarm-overlay');
-const alarmElapsed = document.getElementById('alarm-elapsed');
-const btnStopAlarm = document.getElementById('btn-stop-alarm');
-
-// --- Inicialización del Plugin de Alarma ---
-async function initAlarmPlugin() {
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AlarmNotification) {
+async function iniciarServicioPrimerPlano() {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ForegroundService) {
     try {
-      const Alarm = window.Capacitor.Plugins.AlarmNotification;
-      const { hasPermission } = await Alarm.checkPermission();
-      if (!hasPermission) {
-        await Alarm.requestPermission();
-      }
+      await window.Capacitor.Plugins.ForegroundService.start({
+        id: 1,
+        title: 'Descanso Activo',
+        message: 'El temporizador está en marcha.',
+        serviceType: 'specialUse' // Requerido en Android 14+ para alarmas/timers
+      });
     } catch (e) {
-      console.warn("No se pudo inicializar el plugin de alarma:", e);
+      console.warn("No se pudo iniciar el servicio en primer plano:", e);
     }
   }
 }
-initAlarmPlugin();
 
-// --- Lógica de la Alarma ---
-async function iniciarAlarma() {
-  alarmStartTime = Date.now();
-  alarmOverlay.classList.remove('hidden');
-  
-  // 1. Disparar la alarma nativa para despertar el dispositivo con prioridad
+async function detenerServicioPrimerPlano() {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ForegroundService) {
+    try {
+      await window.Capacitor.Plugins.ForegroundService.stop();
+    } catch (e) {}
+  }
+}
+
+async function dispararAlertaNativa() {
+  // 1. Intentar programar alarma nativa
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AlarmNotification) {
     try {
       await window.Capacitor.Plugins.AlarmNotification.setAlarm({
@@ -109,18 +96,42 @@ async function iniciarAlarma() {
         message: "Es hora de la siguiente serie.",
         id: "rest-timer"
       });
-    } catch (e) {
-      console.warn("Error al lanzar la alarma nativa:", e);
-    }
+    } catch (e) {}
   }
+}
 
-  // 2. Primer aviso inmediato (sonido/vibración/flash)
-  dispararAlerta();
+// --- 3. Lógica de la Interfaz de Alarma (Bucle) ---
+let alarmLoopInterval = null;
+let alarmTimerInterval = null;
+let alarmStartTime = 0;
 
-  // 3. Bucle de repetición cada 1.5 segundos
-  alarmLoopInterval = setInterval(dispararAlerta, 1500);
+const alarmOverlay = document.getElementById('alarm-overlay');
+const alarmElapsed = document.getElementById('alarm-elapsed');
+const btnStopAlarm = document.getElementById('btn-stop-alarm');
 
-  // 4. Contador de tiempo transcurrido desde que sonó
+function dispararAlertaVisualSonora() {
+  reproducirPitido();
+  vibrarNativo();
+  parpadearLinterna();
+}
+
+async function iniciarAlarma() {
+  alarmStartTime = Date.now();
+  alarmOverlay.classList.remove('hidden');
+  
+  // 1. Levantar el servicio prioritario
+  await iniciarServicioPrimerPlano();
+  
+  // 2. Disparar alarma nativa
+  await dispararAlertaNativa();
+
+  // 3. Primer aviso inmediato
+  dispararAlertaVisualSonora();
+
+  // 4. Bucle de repetición cada 1.5s
+  alarmLoopInterval = setInterval(dispararAlertaVisualSonora, 1500);
+
+  // 5. Actualizar contador de tiempo desde que sonó
   alarmTimerInterval = setInterval(() => {
     const elapsedSecs = Math.floor((Date.now() - alarmStartTime) / 1000);
     alarmElapsed.textContent = `+${formatTimeTimer(elapsedSecs)}`;
@@ -132,22 +143,27 @@ async function detenerAlarma() {
   clearInterval(alarmTimerInterval);
   alarmOverlay.classList.add('hidden');
   
-  // Cancelar la alarma nativa
+  // 1. Bajar el servicio prioritario
+  await detenerServicioPrimerPlano();
+
+  // 2. Cancelar la alarma nativa
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AlarmNotification) {
     try {
       await window.Capacitor.Plugins.AlarmNotification.cancelAlarm();
     } catch (e) {}
   }
 
-  // Apagar linterna si quedó encendida
+  // 3. Asegurar que la linterna se apaga
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Torch) {
     window.Capacitor.Plugins.Torch.disable().catch(() => {});
   }
 }
 
-btnStopAlarm.addEventListener('click', detenerAlarma);
+if (btnStopAlarm) {
+  btnStopAlarm.addEventListener('click', detenerAlarma);
+}
 
-// --- Lógica del Cronómetro ---
+// --- 4. Lógica del Cronómetro ---
 let cronoStartTime = 0;
 let cronoAccumulated = 0;
 let cronoInterval = null;
@@ -171,36 +187,40 @@ function updateCronoDisplay() {
   cronoDisplay.textContent = formatTime(elapsed);
 }
 
-btnCronoStart.addEventListener('click', () => {
-  desbloquearAudio();
-  if (cronoRunning) {
-    cronoAccumulated += Date.now() - cronoStartTime;
+if (btnCronoStart) {
+  btnCronoStart.addEventListener('click', () => {
+    desbloquearAudio();
+    if (cronoRunning) {
+      cronoAccumulated += Date.now() - cronoStartTime;
+      clearInterval(cronoInterval);
+      cronoRunning = false;
+      btnCronoStart.textContent = '▶ Reanudar';
+      btnCronoStop.style.display = 'block';
+    } else {
+      cronoStartTime = Date.now();
+      cronoInterval = setInterval(updateCronoDisplay, 1000);
+      cronoRunning = true;
+      btnCronoStart.textContent = '⏸ Pausar';
+      btnCronoStop.style.display = 'none';
+      updateCronoDisplay();
+    }
+  });
+}
+
+if (btnCronoStop) {
+  btnCronoStop.addEventListener('click', () => {
     clearInterval(cronoInterval);
     cronoRunning = false;
-    btnCronoStart.textContent = '▶ Reanudar';
-    btnCronoStop.style.display = 'block';
-  } else {
-    cronoStartTime = Date.now();
-    cronoInterval = setInterval(updateCronoDisplay, 1000);
-    cronoRunning = true;
-    btnCronoStart.textContent = '⏸ Pausar';
+    const finalTime = cronoAccumulated + (Date.now() - cronoStartTime);
+    alert(`Entrenamiento guardado: ${formatTime(finalTime)}`);
+    cronoAccumulated = 0;
+    cronoDisplay.textContent = '00:00:00';
+    btnCronoStart.textContent = '▶ Iniciar';
     btnCronoStop.style.display = 'none';
-    updateCronoDisplay();
-  }
-});
+  });
+}
 
-btnCronoStop.addEventListener('click', () => {
-  clearInterval(cronoInterval);
-  cronoRunning = false;
-  const finalTime = cronoAccumulated + (Date.now() - cronoStartTime);
-  alert(`Entrenamiento guardado: ${formatTime(finalTime)}`);
-  cronoAccumulated = 0;
-  cronoDisplay.textContent = '00:00:00';
-  btnCronoStart.textContent = '▶ Iniciar';
-  btnCronoStop.style.display = 'none';
-});
-
-// --- Lógica del Temporizador de Descanso ---
+// --- 5. Lógica del Temporizador de Descanso ---
 let timerInterval = null;
 let timerEndTime = 0;
 let timerRunning = false;
@@ -254,29 +274,33 @@ function updateTimerDisplay() {
   }
 }
 
-btnTimerStart.addEventListener('click', () => {
-  if (timerRunning || !alarmOverlay.classList.contains('hidden')) return;
-  
-  desbloquearAudio();
+if (btnTimerStart) {
+  btnTimerStart.addEventListener('click', () => {
+    if (timerRunning || !alarmOverlay.classList.contains('hidden')) return;
+    
+    desbloquearAudio();
 
-  timerEndTime = Date.now() + (defaultRestMinutes * 60 * 1000);
-  timerInterval = setInterval(updateTimerDisplay, 200);
-  timerRunning = true;
-  
-  timerDisplay.style.color = "var(--text)";
-  btnTimerStart.style.display = 'none';
-  btnTimerStop.style.display = 'block';
-  updateTimerDisplay();
-});
+    timerEndTime = Date.now() + (defaultRestMinutes * 60 * 1000);
+    timerInterval = setInterval(updateTimerDisplay, 200);
+    timerRunning = true;
+    
+    timerDisplay.style.color = "var(--text)";
+    btnTimerStart.style.display = 'none';
+    btnTimerStop.style.display = 'block';
+    updateTimerDisplay();
+  });
+}
 
-btnTimerStop.addEventListener('click', () => {
-  clearInterval(timerInterval);
-  timerRunning = false;
-  timerDisplay.textContent = formatTimeTimer(defaultRestMinutes * 60);
-  timerDisplay.style.color = "var(--text)";
-  btnTimerStart.style.display = 'block';
-  btnTimerStop.style.display = 'none';
-});
+if (btnTimerStop) {
+  btnTimerStop.addEventListener('click', () => {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerDisplay.textContent = formatTimeTimer(defaultRestMinutes * 60);
+    timerDisplay.style.color = "var(--text)";
+    btnTimerStart.style.display = 'block';
+    btnTimerStop.style.display = 'none';
+  });
+}
 
 // Inicializar display
 timerDisplay.textContent = formatTimeTimer(defaultRestMinutes * 60);
