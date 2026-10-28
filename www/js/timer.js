@@ -16,28 +16,37 @@ function reproducirPitido() {
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(660, audioCtx.currentTime + 0.3);
+    // Onda cuadrada: suena mucho más fuerte y cortante que la sinusoidal
+    osc.type = 'square'; 
+    osc.frequency.setValueAtTime(1000, audioCtx.currentTime); // Tono más agudo
     
-    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    // Volumen al máximo
+    gainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
     
     osc.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.3);
+    osc.stop(audioCtx.currentTime + 0.4); // Duración de 0.4 segundos
   } catch (e) {}
 }
 
 async function vibrarNativo() {
+  // 1. Intentar con el plugin de Capacitor
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
     try {
-      await window.Capacitor.Plugins.Haptics.vibrate({ duration: 1000 });
-    } catch (e) {}
-  } else if (navigator.vibrate) {
-    navigator.vibrate([500, 200, 500]);
+      // Patrón de vibración nativo
+      await window.Capacitor.Plugins.Haptics.vibrate({ duration: 600 });
+      return;
+    } catch (e) {
+      console.warn("Fallo Haptics nativo, usando fallback web");
+    }
+  }
+  
+  // 2. Fallback para navegador (o si falla Capacitor)
+  if (navigator.vibrate) {
+    navigator.vibrate([600, 200, 600]); 
   }
 }
 
@@ -46,19 +55,16 @@ async function parpadearLinterna() {
     try {
       const Torch = window.Capacitor.Plugins.Torch;
       
-      // Secuencia de parpadeo
       await Torch.enable();
       setTimeout(async () => {
         await Torch.disable();
         setTimeout(async () => {
           await Torch.enable();
-          setTimeout(() => Torch.disable(), 300);
-        }, 300);
-      }, 300);
+          setTimeout(() => Torch.disable(), 250);
+        }, 250);
+      }, 250);
       
-    } catch (e) {
-      // Ignorar errores si la cámara está ocupada por otra app
-    }
+    } catch (e) {}
   }
 }
 
@@ -81,13 +87,13 @@ function iniciarAlarma() {
   alarmStartTime = Date.now();
   alarmOverlay.classList.remove('hidden');
   
-  // Disparar inmediatamente la primera vez
+  // Disparar inmediatamente
   dispararAlerta();
 
-  // Repetir la alerta cada 2.5 segundos
-  alarmLoopInterval = setInterval(dispararAlerta, 2500);
+  // Repetir la alerta cada 1.5 segundos (1500 ms)
+  alarmLoopInterval = setInterval(dispararAlerta, 1500);
 
-  // Actualizar el contador de tiempo transcurrido cada 1 segundo
+  // Actualizar el contador
   alarmTimerInterval = setInterval(() => {
     const elapsedSecs = Math.floor((Date.now() - alarmStartTime) / 1000);
     alarmElapsed.textContent = `+${formatTimeTimer(elapsedSecs)}`;
@@ -99,7 +105,6 @@ function detenerAlarma() {
   clearInterval(alarmTimerInterval);
   alarmOverlay.classList.add('hidden');
   
-  // Asegurarse de apagar la linterna si quedó encendida
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Torch) {
     window.Capacitor.Plugins.Torch.disable().catch(() => {});
   }
@@ -205,13 +210,11 @@ function updateTimerDisplay() {
     clearInterval(timerInterval);
     timerRunning = false;
     
-    // UI base
     timerDisplay.textContent = "0:00";
     btnTimerStart.textContent = '▶ Iniciar Descanso';
     btnTimerStart.style.display = 'block';
     btnTimerStop.style.display = 'none';
     
-    // Lanzar Overlay
     iniciarAlarma();
   }
 }
