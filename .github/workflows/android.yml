@@ -26,7 +26,7 @@ jobs:
           packages: 'platform-tools'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Add Android platform
         run: |
