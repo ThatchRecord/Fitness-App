@@ -16,11 +16,9 @@ function reproducirPitido() {
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     
-    // Onda cuadrada: suena mucho más fuerte y cortante que la sinusoidal
     osc.type = 'square'; 
-    osc.frequency.setValueAtTime(1000, audioCtx.currentTime); // Tono más agudo
+    osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
     
-    // Volumen al máximo
     gainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
     
@@ -28,40 +26,25 @@ function reproducirPitido() {
     gainNode.connect(audioCtx.destination);
     
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.4); // Duración de 0.4 segundos
+    osc.stop(audioCtx.currentTime + 0.4);
   } catch (e) {}
 }
 
 async function vibrarNativo() {
-  // 1. Intentar con el plugin de Capacitor de varias formas
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
     try {
       const Haptics = window.Capacitor.Plugins.Haptics;
-      
-      // Intentar un impacto fuerte (a veces se siente más que vibrate)
       if (Haptics.impact) {
         await Haptics.impact({ style: 'HEAVY' });
       }
-      
-      // Intentar la vibración estándar con duración
       if (Haptics.vibrate) {
-        await Haptics.vibrate({ duration: 1000 });
+        await Haptics.vibrate({ duration: 800 });
       }
       return;
-    } catch (e) {
-      console.warn("Fallo Haptics nativo:", e);
-    }
+    } catch (e) {}
   }
-  
-  // 2. Fallback para navegador web (WebView)
   if (navigator.vibrate) {
-    // Patrón: 800ms vibrando, 200 pausa, 800ms vibrando
-    const exito = navigator.vibrate([800, 200, 800]);
-    if (!exito) {
-      console.warn("navigator.vibrate bloqueado por el sistema");
-    }
-  } else {
-    console.warn("Este dispositivo no soporta navigator.vibrate");
+    navigator.vibrate([800, 200, 800]);
   }
 }
 
@@ -69,7 +52,6 @@ async function parpadearLinterna() {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Torch) {
     try {
       const Torch = window.Capacitor.Plugins.Torch;
-      
       await Torch.enable();
       setTimeout(async () => {
         await Torch.disable();
@@ -78,7 +60,6 @@ async function parpadearLinterna() {
           setTimeout(() => Torch.disable(), 250);
         }, 250);
       }, 250);
-      
     } catch (e) {}
   }
 }
@@ -98,28 +79,67 @@ const alarmOverlay = document.getElementById('alarm-overlay');
 const alarmElapsed = document.getElementById('alarm-elapsed');
 const btnStopAlarm = document.getElementById('btn-stop-alarm');
 
-function iniciarAlarma() {
+// --- Inicialización del Plugin de Alarma ---
+async function initAlarmPlugin() {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AlarmNotification) {
+    try {
+      const Alarm = window.Capacitor.Plugins.AlarmNotification;
+      const { hasPermission } = await Alarm.checkPermission();
+      if (!hasPermission) {
+        await Alarm.requestPermission();
+      }
+    } catch (e) {
+      console.warn("No se pudo inicializar el plugin de alarma:", e);
+    }
+  }
+}
+initAlarmPlugin();
+
+// --- Lógica de la Alarma ---
+async function iniciarAlarma() {
   alarmStartTime = Date.now();
   alarmOverlay.classList.remove('hidden');
   
-  // Disparar inmediatamente
+  // 1. Disparar la alarma nativa para despertar el dispositivo con prioridad
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AlarmNotification) {
+    try {
+      await window.Capacitor.Plugins.AlarmNotification.setAlarm({
+        delay: 0,
+        title: "¡Descanso terminado!",
+        message: "Es hora de la siguiente serie.",
+        id: "rest-timer"
+      });
+    } catch (e) {
+      console.warn("Error al lanzar la alarma nativa:", e);
+    }
+  }
+
+  // 2. Primer aviso inmediato (sonido/vibración/flash)
   dispararAlerta();
 
-  // Repetir la alerta cada 1.5 segundos (1500 ms)
+  // 3. Bucle de repetición cada 1.5 segundos
   alarmLoopInterval = setInterval(dispararAlerta, 1500);
 
-  // Actualizar el contador
+  // 4. Contador de tiempo transcurrido desde que sonó
   alarmTimerInterval = setInterval(() => {
     const elapsedSecs = Math.floor((Date.now() - alarmStartTime) / 1000);
     alarmElapsed.textContent = `+${formatTimeTimer(elapsedSecs)}`;
   }, 1000);
 }
 
-function detenerAlarma() {
+async function detenerAlarma() {
   clearInterval(alarmLoopInterval);
   clearInterval(alarmTimerInterval);
   alarmOverlay.classList.add('hidden');
   
+  // Cancelar la alarma nativa
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AlarmNotification) {
+    try {
+      await window.Capacitor.Plugins.AlarmNotification.cancelAlarm();
+    } catch (e) {}
+  }
+
+  // Apagar linterna si quedó encendida
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Torch) {
     window.Capacitor.Plugins.Torch.disable().catch(() => {});
   }
