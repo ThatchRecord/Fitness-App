@@ -37,17 +37,25 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # NUEVO PASO: Forzar permiso de vibración
-      - name: Force Vibration Permission
+      # --- INYECCIÓN DE PERMISOS ---
+      - name: Inject Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
+          
+          # Inyectar permiso de vibración si no existe
           if grep -q "android.permission.VIBRATE" "$MANIFEST"; then
-            echo "El permiso de vibración ya existe."
+            echo "Permiso de vibración ya existe."
           else
-            # Inserta el permiso justo antes de la etiqueta <application>
             sed -i 's/<application/<uses-permission android:name="android.permission.VIBRATE" \/>\n    <application/' "$MANIFEST"
-            echo "Permiso de vibración inyectado."
           fi
+
+          # Inyectar permiso de optimización de batería si no existe
+          if grep -q "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" "$MANIFEST"; then
+            echo "Permiso de batería ya existe."
+          else
+            sed -i 's/<application/<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" \/>\n    <application/' "$MANIFEST"
+          fi
+      # -----------------------------
 
       - name: Build APK
         run: |
