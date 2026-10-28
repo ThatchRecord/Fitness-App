@@ -2,7 +2,6 @@
 let audioCtx = null;
 
 function desbloquearAudio() {
-  // Se llama en el primer toque para evitar el bloqueo de Android
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
@@ -19,40 +18,36 @@ function reproducirPitido() {
     
     osc.type = 'sine';
     osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
+    osc.frequency.exponentialRampToValueAtTime(660, audioCtx.currentTime + 0.3);
     
     gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
     
     osc.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.5);
-  } catch (e) {
-    console.warn("Error al reproducir audio:", e);
-  }
+    osc.stop(audioCtx.currentTime + 0.3);
+  } catch (e) {}
 }
 
-async function alertaFinTemporizador() {
-  // 1. Sonido
-  reproducirPitido();
-
-  // 2. Vibración
+async function vibrarNativo() {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
     try {
       await window.Capacitor.Plugins.Haptics.vibrate({ duration: 1000 });
-    } catch (e) { console.warn("Haptics error", e); }
+    } catch (e) {}
   } else if (navigator.vibrate) {
-    navigator.vibrate([500, 200, 500, 200, 500]); // Patrón largo
+    navigator.vibrate([500, 200, 500]);
   }
+}
 
-  // 3. Linterna (Flash)
+async function parpadearLinterna() {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Torch) {
     try {
       const Torch = window.Capacitor.Plugins.Torch;
+      
+      // Secuencia de parpadeo
       await Torch.enable();
-      // Parpadeo: apagar y encender a los 300ms
       setTimeout(async () => {
         await Torch.disable();
         setTimeout(async () => {
@@ -60,11 +55,57 @@ async function alertaFinTemporizador() {
           setTimeout(() => Torch.disable(), 300);
         }, 300);
       }, 300);
+      
     } catch (e) {
-      console.warn("Error con la linterna (quizás no hay hardware o permisos):", e);
+      // Ignorar errores si la cámara está ocupada por otra app
     }
   }
 }
+
+function dispararAlerta() {
+  reproducirPitido();
+  vibrarNativo();
+  parpadearLinterna();
+}
+
+// --- Variables de Estado de la Alarma ---
+let alarmLoopInterval = null;
+let alarmTimerInterval = null;
+let alarmStartTime = 0;
+
+const alarmOverlay = document.getElementById('alarm-overlay');
+const alarmElapsed = document.getElementById('alarm-elapsed');
+const btnStopAlarm = document.getElementById('btn-stop-alarm');
+
+function iniciarAlarma() {
+  alarmStartTime = Date.now();
+  alarmOverlay.classList.remove('hidden');
+  
+  // Disparar inmediatamente la primera vez
+  dispararAlerta();
+
+  // Repetir la alerta cada 2.5 segundos
+  alarmLoopInterval = setInterval(dispararAlerta, 2500);
+
+  // Actualizar el contador de tiempo transcurrido cada 1 segundo
+  alarmTimerInterval = setInterval(() => {
+    const elapsedSecs = Math.floor((Date.now() - alarmStartTime) / 1000);
+    alarmElapsed.textContent = `+${formatTimeTimer(elapsedSecs)}`;
+  }, 1000);
+}
+
+function detenerAlarma() {
+  clearInterval(alarmLoopInterval);
+  clearInterval(alarmTimerInterval);
+  alarmOverlay.classList.add('hidden');
+  
+  // Asegurarse de apagar la linterna si quedó encendida
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Torch) {
+    window.Capacitor.Plugins.Torch.disable().catch(() => {});
+  }
+}
+
+btnStopAlarm.addEventListener('click', detenerAlarma);
 
 // --- Lógica del Cronómetro ---
 let cronoStartTime = 0;
@@ -91,7 +132,7 @@ function updateCronoDisplay() {
 }
 
 btnCronoStart.addEventListener('click', () => {
-  desbloquearAudio(); // Desbloquear sonido
+  desbloquearAudio();
   if (cronoRunning) {
     cronoAccumulated += Date.now() - cronoStartTime;
     clearInterval(cronoInterval);
@@ -130,15 +171,15 @@ const btnTimerStart = document.getElementById('btn-timer-start');
 const btnTimerStop = document.getElementById('btn-timer-stop');
 
 window.setRestTime = function(minutes) {
-  if (timerRunning) return;
+  if (timerRunning || !alarmOverlay.classList.contains('hidden')) return;
   defaultRestMinutes = minutes;
   timerDisplay.textContent = formatTimeTimer(minutes * 60);
 };
 
 window.setRestTimeCustom = function() {
-  if (timerRunning) return;
-  const input = prompt("Introduce los minutos de descanso (puedes usar decimales, ej: 1.5):", defaultRestMinutes);
-  if (input === null) return; // Cancelado
+  if (timerRunning || !alarmOverlay.classList.contains('hidden')) return;
+  const input = prompt("Introduce los minutos de descanso (ej: 1.5):", defaultRestMinutes);
+  if (input === null) return;
   
   const min = parseFloat(input);
   if (!isNaN(min) && min > 0) {
@@ -163,20 +204,22 @@ function updateTimerDisplay() {
   if (remaining <= 0) {
     clearInterval(timerInterval);
     timerRunning = false;
-    timerDisplay.textContent = "¡LISTO!";
-    timerDisplay.style.color = "var(--accent)";
+    
+    // UI base
+    timerDisplay.textContent = "0:00";
     btnTimerStart.textContent = '▶ Iniciar Descanso';
     btnTimerStart.style.display = 'block';
     btnTimerStop.style.display = 'none';
     
-    alertaFinTemporizador();
+    // Lanzar Overlay
+    iniciarAlarma();
   }
 }
 
 btnTimerStart.addEventListener('click', () => {
-  if (timerRunning) return;
+  if (timerRunning || !alarmOverlay.classList.contains('hidden')) return;
   
-  desbloquearAudio(); // CRUCIAL: desbloquear audio en el toque
+  desbloquearAudio();
 
   timerEndTime = Date.now() + (defaultRestMinutes * 60 * 1000);
   timerInterval = setInterval(updateTimerDisplay, 200);
