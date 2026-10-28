@@ -1,0 +1,80 @@
+:root {
+  --bg: #0f0f10;
+  --surface: #1a1a1c;
+  --surface-2: #242428;
+  --text: #f0f0f2;
+  --text-muted: #9a9aa0;
+  --accent: #4ade80;
+  --tabbar-height: 68px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 18px;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+#app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px calc(var(--tabbar-height) + var(--safe-bottom) + 24px);
+  min-height: 100vh;
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+.view h1 {
+  font-size: 28px;
+  margin: 0 0 16px;
+}
+
+.placeholder {
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 20px;
+  border-radius: 12px;
+  line-height: 1.5;
+}
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--tabbar-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--surface-2);
+  z-index: 10;
+}
+
+.tab {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 8px 4px;
+  transition: color 0.15s ease;
+}
+
+.tab-icon { font-size: 22px; line-height: 1; }
+.tab.active { color: var(--accent); }
+.tab:active { background: var(--surface-2); }
