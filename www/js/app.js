@@ -175,3 +175,42 @@
   updatePAE();
   cargarHistorial();
 })();
+
+// --- Lógica para la optimización de batería ---
+const btnBatteryOpt = document.getElementById('btn-battery-opt');
+const batteryStatusText = document.getElementById('battery-status-text');
+
+async function checkBatteryOptimization() {
+  if (!window.Capacitor || !window.Capacitor.Plugins.BatteryOptimization) return;
+  try {
+    const { enabled } = await window.Capacitor.Plugins.BatteryOptimization.isBatteryOptimizationEnabled();
+    if (enabled) {
+      batteryStatusText.textContent = "El ahorro de batería está ACTIVADO. La vibración podría fallar.";
+      batteryStatusText.style.color = "#f59e0b";
+    } else {
+      batteryStatusText.textContent = "El ahorro de batería está DESACTIVADO para esta app.";
+      batteryStatusText.style.color = "var(--accent)";
+    }
+  } catch (e) {
+    console.warn("Error al comprobar la batería:", e);
+  }
+}
+
+if (btnBatteryOpt) {
+  btnBatteryOpt.addEventListener('click', async () => {
+    if (!window.Capacitor || !window.Capacitor.Plugins.BatteryOptimization) {
+      alert("Esta función solo está disponible en la app de Android.");
+      return;
+    }
+    try {
+      await window.Capacitor.Plugins.BatteryOptimization.requestIgnoreBatteryOptimization();
+      setTimeout(checkBatteryOptimization, 1000);
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo solicitar la exención. Revisa los permisos.");
+    }
+  });
+  
+  // Comprobar estado inicial
+  checkBatteryOptimization();
+}
