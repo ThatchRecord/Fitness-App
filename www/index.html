@@ -108,10 +108,21 @@
     </section>
 
     <!-- PESTAÑA: AJUSTES -->
-    <section class="view" data-view="ajustes">
-      <h1>Ajustes</h1>
-      <p class="placeholder">Aquí irán sexo, K, sonido, vibración y copias de seguridad.</p>
-    </section>
+<section class="view" data-view="ajustes">
+  <h1>Ajustes</h1>
+  
+  <!-- NUEVO BOTÓN -->
+  <div class="card">
+    <h2>🔋 Optimización de batería</h2>
+    <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">
+      Si notas que la vibración falla con el modo de ahorro activo, pulsa aquí para darle prioridad a la app.
+    </p>
+    <button id="btn-battery-opt" class="btn-secondary" style="width: 100%;">Desactivar ahorro de batería</button>
+    <p id="battery-status-text" style="color: var(--text-muted); font-size: 14px; margin-top: 12px; text-align: center;"></p>
+  </div>
+  
+  <p class="placeholder">Aquí irán más ajustes en el futuro.</p>
+</section>
   </main>
 
   <!-- BARRA DE NAVEGACIÓN INFERIOR -->
