@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0f10">
+  <title>Mi Fitness</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main id="app">
+    <section class="view" data-view="hoy">
+      <h1>Hoy</h1>
+      <p class="placeholder">Aquí irá el botón de empezar entrenamiento y el resumen del día.</p>
+    </section>
+
+    <section class="view" data-view="entrenar">
+      <h1>Entrenar</h1>
+      <p class="placeholder">Aquí irán el cronómetro, la lista de ejercicios y las series.</p>
+    </section>
+
+    <section class="view" data-view="medidas">
+      <h1>Medidas</h1>
+      <p class="placeholder">Aquí irá el formulario de medidas y la calculadora PAE.</p>
+    </section>
+
+    <section class="view" data-view="progreso">
+      <h1>Progreso</h1>
+      <p class="placeholder">Aquí irán los gráficos de progresión.</p>
+    </section>
+
+    <section class="view" data-view="ajustes">
+      <h1>Ajustes</h1>
+      <p class="placeholder">Aquí irán sexo, K, sonido, vibración y copias de seguridad.</p>
+    </section>
+  </main>
+
+  <nav class="tabbar" role="tablist">
+    <button class="tab" data-tab="hoy" role="tab" aria-selected="true">
+      <span class="tab-icon">🏠</span><span class="tab-label">Hoy</span>
+    </button>
+    <button class="tab" data-tab="entrenar" role="tab" aria-selected="false">
+      <span class="tab-icon">🏋️</span><span class="tab-label">Entrenar</span>
+    </button>
+    <button class="tab" data-tab="medidas" role="tab" aria-selected="false">
+      <span class="tab-icon">📏</span><span class="tab-label">Medidas</span>
+    </button>
+    <button class="tab" data-tab="progreso" role="tab" aria-selected="false">
+      <span class="tab-icon">📈</span><span class="tab-label">Progreso</span>
+    </button>
+    <button class="tab" data-tab="ajustes" role="tab" aria-selected="false">
+      <span class="tab-icon">⚙️</span><span class="tab-label">Ajustes</span>
+    </button>
+  </nav>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
