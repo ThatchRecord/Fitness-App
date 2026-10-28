@@ -258,3 +258,33 @@ input[type="number"]:focus, select:focus {
 }
 
 .btn-outline:active { background: rgba(74, 222, 128, 0.2); }
+
+/* --- Estilos para la Alarma (Overlay) --- */
+.alarm-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 15, 16, 0.95); /* Casi opaco */
+  backdrop-filter: blur(4px);
+  z-index: 999; /* Por encima de todo */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  transition: opacity 0.3s ease;
+}
+
+.alarm-overlay.hidden {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn-danger {
+  background: #ef4444; /* Rojo */
+  color: white;
+}
+.btn-danger:active {
+  background: #dc2626;
+}
