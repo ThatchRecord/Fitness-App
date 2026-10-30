@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectRutina = document.getElementById('select-rutina');
   const btnCargarRutina = document.getElementById('btn-cargar-rutina');
   const btnGuardarRutina = document.getElementById('btn-guardar-rutina');
+  const btnBorrarRutina = document.getElementById('btn-borrar-rutina');
 
   // --- 1. Renderizado en Pantalla ---
   function renderizarSesion() {
@@ -100,15 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function cargarListaRutinas() {
     try {
       const rutinas = await dbWorkout.rutinas.toArray();
-      console.log("Rutinas encontradas en la BD:", rutinas); // Depuración
-      
-      // Limpiamos el selector manteniendo la opción por defecto
       selectRutina.innerHTML = '<option value="">Cargar rutina guardada...</option>';
       
-      if (rutinas.length === 0) {
-        console.log("No hay rutinas guardadas aún.");
-      }
-
       rutinas.forEach(r => {
         const opt = document.createElement('option');
         opt.value = r.id;
@@ -134,19 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const nombresEjercicios = sesionActual.ejercicios.map(e => e.nombre);
 
       try {
-        // Guardamos en la BD
         await dbWorkout.rutinas.add({
           nombre: nombreRutina,
           ejercicios: nombresEjercicios
         });
         
         alert("Rutina guardada correctamente.");
-        
-        // CRUCIAL: Esperar un momento a que IndexedDB confirme y recargar la lista
-        setTimeout(() => {
-          cargarListaRutinas();
-        }, 100);
-        
+        cargarListaRutinas();
       } catch (err) {
         console.error("Error al guardar rutina:", err);
         alert("Error al guardar la rutina.");
@@ -165,20 +153,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const rutina = await dbWorkout.rutinas.get(id);
-        console.log("Rutina seleccionada:", rutina); // Depuración
-        
         if (rutina && rutina.ejercicios) {
-          // Sobrescribimos la sesión actual
           sesionActual.ejercicios = rutina.ejercicios.map(nombre => ({
             nombre: nombre,
             series: [{ peso: '', reps: '', rir: '' }]
           }));
-          
           renderizarSesion();
         }
       } catch (err) {
         console.error("Error al cargar rutina:", err);
         alert("Error al cargar la rutina.");
+      }
+    });
+  }
+
+  // Borrar una Rutina
+  if (btnBorrarRutina) {
+    btnBorrarRutina.addEventListener('click', async () => {
+      const id = parseInt(selectRutina.value);
+      if (!id) {
+        alert("Selecciona una rutina de la lista para borrarla.");
+        return;
+      }
+      
+      const confirmar = confirm("¿Estás seguro de que quieres borrar esta rutina? Esta acción no se puede deshacer.");
+      if (!confirmar) return;
+
+      try {
+        await dbWorkout.rutinas.delete(id);
+        alert("Rutina borrada correctamente.");
+        cargarListaRutinas(); // Refrescar la lista
+      } catch (err) {
+        console.error("Error al borrar rutina:", err);
+        alert("Error al borrar la rutina.");
       }
     });
   }
