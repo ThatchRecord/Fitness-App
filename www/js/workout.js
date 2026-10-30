@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // --- Base de Datos ---
   const dbWorkout = new Dexie('FitnessAppDB');
   dbWorkout.version(3).stores({
     medidas: '++id, fecha',
@@ -10,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let sesionActual = { ejercicios: [] };
 
-  // --- Elementos del DOM ---
   const listaEjerciciosSesion = document.getElementById('lista-ejercicios-sesion');
   const inputNuevoEjercicio = document.getElementById('nuevo-ejercicio-nombre');
   const btnAddEjercicio = document.getElementById('btn-add-ejercicio');
@@ -44,10 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
       ejercicio.series.forEach((serie, indexSerie) => {
         const setRow = document.createElement('div');
         setRow.className = 'set-row';
+        // CAMBIO CLAVE: Usar 'oninput' en lugar de 'onchange'
         setRow.innerHTML = `
-          <input type="number" step="0.5" placeholder="Kg" value="${serie.peso}" onchange="actualizarSerie(${indexEj}, ${indexSerie}, 'peso', this.value)">
-          <input type="number" step="1" placeholder="Reps" value="${serie.reps}" onchange="actualizarSerie(${indexEj}, ${indexSerie}, 'reps', this.value)">
-          <input type="number" step="1" placeholder="RIR" value="${serie.rir}" onchange="actualizarSerie(${indexEj}, ${indexSerie}, 'rir', this.value)">
+          <input type="number" step="0.5" placeholder="Kg" value="${serie.peso}" oninput="actualizarSerie(${indexEj}, ${indexSerie}, 'peso', this.value)">
+          <input type="number" step="1" placeholder="Reps" value="${serie.reps}" oninput="actualizarSerie(${indexEj}, ${indexSerie}, 'reps', this.value)">
+          <input type="number" step="1" placeholder="RIR" value="${serie.rir}" oninput="actualizarSerie(${indexEj}, ${indexSerie}, 'rir', this.value)">
           <button type="button" onclick="borrarSerie(${indexEj}, ${indexSerie})">✖</button>
         `;
         setsContainer.appendChild(setRow);
@@ -102,115 +101,93 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const rutinas = await dbWorkout.rutinas.toArray();
       selectRutina.innerHTML = '<option value="">Cargar rutina guardada...</option>';
-      
       rutinas.forEach(r => {
         const opt = document.createElement('option');
         opt.value = r.id;
         opt.textContent = r.nombre;
         selectRutina.appendChild(opt);
       });
-    } catch (error) {
-      console.error("Error al cargar la lista de rutinas:", error);
-    }
+    } catch (error) {}
   }
 
-  // Guardar la sesión actual como Rutina
   if (btnGuardarRutina) {
     btnGuardarRutina.addEventListener('click', async () => {
       if (sesionActual.ejercicios.length === 0) {
         alert("Añade al menos un ejercicio para guardar una rutina.");
         return;
       }
-      
       const nombreRutina = prompt("Nombre para esta rutina (ej. Día de Pecho):");
       if (!nombreRutina) return;
-
       const nombresEjercicios = sesionActual.ejercicios.map(e => e.nombre);
-
       try {
-        await dbWorkout.rutinas.add({
-          nombre: nombreRutina,
-          ejercicios: nombresEjercicios
-        });
-        
+        await dbWorkout.rutinas.add({ nombre: nombreRutina, ejercicios: nombresEjercicios });
         alert("Rutina guardada correctamente.");
         cargarListaRutinas();
-      } catch (err) {
-        console.error("Error al guardar rutina:", err);
-        alert("Error al guardar la rutina.");
-      }
+      } catch (err) {}
     });
   }
 
-  // Cargar una Rutina desde la base de datos
   if (btnCargarRutina) {
     btnCargarRutina.addEventListener('click', async () => {
       const id = parseInt(selectRutina.value);
-      if (!id) {
-        alert("Selecciona una rutina de la lista.");
-        return;
-      }
-
+      if (!id) return alert("Selecciona una rutina.");
       try {
         const rutina = await dbWorkout.rutinas.get(id);
-        if (rutina && rutina.ejercicios) {
+        if (rutina) {
           sesionActual.ejercicios = rutina.ejercicios.map(nombre => ({
             nombre: nombre,
             series: [{ peso: '', reps: '', rir: '' }]
           }));
           renderizarSesion();
         }
-      } catch (err) {
-        console.error("Error al cargar rutina:", err);
-        alert("Error al cargar la rutina.");
-      }
+      } catch (err) {}
     });
   }
 
-  // Borrar una Rutina
   if (btnBorrarRutina) {
     btnBorrarRutina.addEventListener('click', async () => {
       const id = parseInt(selectRutina.value);
-      if (!id) {
-        alert("Selecciona una rutina de la lista para borrarla.");
-        return;
-      }
-      
-      const confirmar = confirm("¿Estás seguro de que quieres borrar esta rutina? Esta acción no se puede deshacer.");
-      if (!confirmar) return;
-
+      if (!id) return alert("Selecciona una rutina para borrarla.");
+      if (!confirm("¿Borrar esta rutina?")) return;
       try {
         await dbWorkout.rutinas.delete(id);
-        alert("Rutina borrada correctamente.");
-        cargarListaRutinas(); // Refrescar la lista
-      } catch (err) {
-        console.error("Error al borrar rutina:", err);
-        alert("Error al borrar la rutina.");
-      }
+        cargarListaRutinas();
+      } catch (err) {}
     });
   }
 
-  // --- 4. Guardar la Sesión Histórica (Cronómetro) ---
+  // --- 4. Guardar la Sesión (CORREGIDO) ---
   if (btnCronoStop) {
+    // Clonamos el botón para eliminar cualquier listener previo (por seguridad)
     const nuevoBtnCronoStop = btnCronoStop.cloneNode(true);
     btnCronoStop.parentNode.replaceChild(nuevoBtnCronoStop, btnCronoStop);
 
     nuevoBtnCronoStop.addEventListener('click', async (e) => {
       e.preventDefault();
-      const displayText = document.getElementById('cronometro-display').textContent;
       
-      if (displayText === '00:00:00') return alert('Inicia el cronómetro antes de guardar.');
+      // 1. Detener el cronómetro usando la función de timer.js y obtener el tiempo
+      const displayText = window.finalizarCronometro();
+      if (!displayText || displayText === '00:00:00') {
+        return alert('El cronómetro no estaba corriendo.');
+      }
 
+      // 2. Filtrar ejercicios válidos (que tengan peso o reps)
       const ejerciciosValidos = sesionActual.ejercicios.filter(ej => 
         ej.series.some(s => s.peso !== '' || s.reps !== '')
       );
 
+      if (ejerciciosValidos.length === 0) {
+        if (!confirm('No has registrado series. ¿Guardar solo la duración?')) return;
+      }
+
       try {
+        // 3. Guardar la sesión
         const sesionId = await dbWorkout.sesiones.add({
           fecha: new Date().toISOString(),
           duracion: displayText
         });
 
+        // 4. Guardar las series
         const seriesParaGuardar = [];
         ejerciciosValidos.forEach(ej => {
           ej.series.forEach(s => {
@@ -230,18 +207,12 @@ document.addEventListener('DOMContentLoaded', () => {
           await dbWorkout.series.bulkAdd(seriesParaGuardar);
         }
 
-        alert('¡Entrenamiento del día guardado con éxito!');
+        alert('¡Entrenamiento guardado con éxito!');
         
+        // 5. Limpiar todo para el próximo día
         sesionActual.ejercicios = [];
         renderizarSesion();
-        
         document.getElementById('cronometro-display').textContent = '00:00:00';
-        const btnStart = document.getElementById('btn-crono-start');
-        if (btnStart) {
-          btnStart.textContent = '▶ Iniciar';
-          btnStart.style.display = 'block';
-        }
-        nuevoBtnCronoStop.style.display = 'none';
 
       } catch (err) {
         console.error("Error al guardar:", err);
