@@ -1,44 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // --- Base de Datos (Ampliación) ---
-  // Usamos la misma base de datos 'FitnessAppDB' y subimos a la versión 2
   const dbWorkout = new Dexie('FitnessAppDB');
-  dbWorkout.version(2).stores({
-    medidas: '++id, fecha', // Mantener la tabla anterior
+  dbWorkout.version(3).stores({
+    medidas: '++id, fecha',
     sesiones: '++id, fecha',
-    series: '++id, sesionId, ejercicio'
+    series: '++id, sesionId, ejercicio',
+    rutinas: '++id, nombre'
   });
 
-  // --- Estado de la Sesión Actual ---
-  let sesionActual = {
-    ejercicios: [] // Array de objetos: { nombre: string, series: [] }
-  };
+  let sesionActual = { ejercicios: [] };
 
-  // --- Selección de Elementos del DOM ---
   const listaEjerciciosSesion = document.getElementById('lista-ejercicios-sesion');
   const inputNuevoEjercicio = document.getElementById('nuevo-ejercicio-nombre');
   const btnAddEjercicio = document.getElementById('btn-add-ejercicio');
   const btnCronoStop = document.getElementById('btn-crono-stop');
+  
+  // Elementos de Rutinas
+  const selectRutina = document.getElementById('select-rutina');
+  const btnCargarRutina = document.getElementById('btn-cargar-rutina');
+  const btnGuardarRutina = document.getElementById('btn-guardar-rutina');
 
-  // Validación de seguridad: si falta algún elemento, avisamos en consola y detenemos.
-  if (!listaEjerciciosSesion || !inputNuevoEjercicio || !btnAddEjercicio) {
-    console.error("Faltan elementos en el HTML para el registro de series.");
-    return;
-  }
-
-  // --- Función para renderizar la lista de ejercicios en pantalla ---
+  // --- 1. Renderizado en Pantalla ---
   function renderizarSesion() {
     listaEjerciciosSesion.innerHTML = '';
 
     if (sesionActual.ejercicios.length === 0) {
-      listaEjerciciosSesion.innerHTML = '<p class="placeholder" style="font-size: 14px;">Añade un ejercicio para empezar a registrar series.</p>';
+      listaEjerciciosSesion.innerHTML = '<p class="placeholder" style="font-size: 14px;">Carga una rutina o añade ejercicios manualmente.</p>';
       return;
     }
 
     sesionActual.ejercicios.forEach((ejercicio, indexEj) => {
       const card = document.createElement('div');
       card.className = 'ejercicio-card';
-      
-      // Cabecera del ejercicio
       card.innerHTML = `
         <div class="ejercicio-header">
           <span>${ejercicio.nombre}</span>
@@ -46,10 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Contenedor de series
       const setsContainer = document.createElement('div');
-      setsContainer.id = `sets-${indexEj}`;
-
       ejercicio.series.forEach((serie, indexSerie) => {
         const setRow = document.createElement('div');
         setRow.className = 'set-row';
@@ -62,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setsContainer.appendChild(setRow);
       });
 
-      // Botón para añadir serie
       const btnAddSet = document.createElement('button');
       btnAddSet.type = 'button';
       btnAddSet.className = 'btn-small-add';
@@ -77,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
       listaEjerciciosSesion.appendChild(card);
     });
 
-    // Añadir eventos a los botones de borrar ejercicio
     document.querySelectorAll('.btn-borrar-ejercicio').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.dataset.index);
@@ -87,47 +74,89 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Añadir un nuevo ejercicio (CORREGIDO Y BLINDADO) ---
+  // --- 2. Añadir Ejercicio Manual ---
   btnAddEjercicio.addEventListener('click', (e) => {
-    e.preventDefault(); // Evita comportamientos por defecto (como recargar la página)
-    
+    e.preventDefault();
     const nombre = inputNuevoEjercicio.value.trim();
-    if (!nombre) {
-      console.log("El campo de nombre está vacío");
-      return;
-    }
-
-    // Añadir una serie vacía por defecto
-    sesionActual.ejercicios.push({
-      nombre: nombre,
-      series: [{ peso: '', reps: '', rir: '' }]
-    });
-    
+    if (!nombre) return;
+    sesionActual.ejercicios.push({ nombre, series: [{ peso: '', reps: '', rir: '' }] });
     inputNuevoEjercicio.value = '';
     renderizarSesion();
-    console.log("Ejercicio añadido:", nombre);
   });
 
-  // Permitir añadir ejercicio pulsando "Enter"
-  inputNuevoEjercicio.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      btnAddEjercicio.click();
-    }
-  });
-
-  // --- Actualizar valores de series (Peso, Reps, RIR) ---
-  window.actualizarSerie = function(indexEj, indexSerie, campo, valor) {
+  window.actualizarSerie = (indexEj, indexSerie, campo, valor) => {
     sesionActual.ejercicios[indexEj].series[indexSerie][campo] = valor;
   };
 
-  // --- Borrar una serie ---
-  window.borrarSerie = function(indexEj, indexSerie) {
+  window.borrarSerie = (indexEj, indexSerie) => {
     sesionActual.ejercicios[indexEj].series.splice(indexSerie, 1);
     renderizarSesion();
   };
 
-  // --- Conectar con el Cronómetro para guardar la sesión ---
+  // --- 3. Lógica de Rutinas ---
+  async function cargarListaRutinas() {
+    const rutinas = await dbWorkout.rutinas.toArray();
+    selectRutina.innerHTML = '<option value="">Cargar rutina guardada...</option>';
+    rutinas.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.nombre;
+      selectRutina.appendChild(opt);
+    });
+  }
+
+  // Guardar la sesión actual como Rutina
+  btnGuardarRutina.addEventListener('click', async () => {
+    if (sesionActual.ejercicios.length === 0) {
+      alert("Añade al menos un ejercicio para guardar una rutina.");
+      return;
+    }
+    
+    const nombreRutina = prompt("Nombre para esta rutina (ej. Día de Pecho):");
+    if (!nombreRutina) return;
+
+    // Solo guardamos los nombres de los ejercicios, NO los pesos ni las reps.
+    const nombresEjercicios = sesionActual.ejercicios.map(e => e.nombre);
+
+    try {
+      await dbWorkout.rutinas.add({
+        nombre: nombreRutina,
+        ejercicios: nombresEjercicios
+      });
+      alert("Rutina guardada. La próxima vez podrás cargarla en blanco.");
+      cargarListaRutinas();
+    } catch (err) {
+      console.error(err);
+      alert("Error al guardar la rutina.");
+    }
+  });
+
+  // Cargar una Rutina desde la base de datos
+  btnCargarRutina.addEventListener('click', async () => {
+    const id = parseInt(selectRutina.value);
+    if (!id) {
+      alert("Selecciona una rutina de la lista.");
+      return;
+    }
+
+    try {
+      const rutina = await dbWorkout.rutinas.get(id);
+      
+      // Sobrescribimos la sesión actual con los ejercicios de la rutina
+      // y les ponemos las series en blanco
+      sesionActual.ejercicios = rutina.ejercicios.map(nombre => ({
+        nombre: nombre,
+        series: [{ peso: '', reps: '', rir: '' }]
+      }));
+      
+      renderizarSesion();
+    } catch (err) {
+      console.error(err);
+      alert("Error al cargar la rutina.");
+    }
+  });
+
+  // --- 4. Guardar la Sesión Histórica (Cronómetro) ---
   if (btnCronoStop) {
     const nuevoBtnCronoStop = btnCronoStop.cloneNode(true);
     btnCronoStop.parentNode.replaceChild(nuevoBtnCronoStop, btnCronoStop);
@@ -136,29 +165,20 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const displayText = document.getElementById('cronometro-display').textContent;
       
-      if (displayText === '00:00:00') {
-        alert('Inicia el cronómetro antes de guardar la sesión.');
-        return;
-      }
+      if (displayText === '00:00:00') return alert('Inicia el cronómetro antes de guardar.');
 
       const ejerciciosValidos = sesionActual.ejercicios.filter(ej => 
-        ej.series.some(s => s.peso !== '' && s.reps !== '')
+        ej.series.some(s => s.peso !== '' || s.reps !== '')
       );
 
-      if (ejerciciosValidos.length === 0) {
-        if (!confirm('No has registrado ninguna serie con peso y repeticiones. ¿Guardar solo la duración del entrenamiento?')) {
-          return;
-        }
-      }
-
       try {
-        // 1. Guardar la sesión
+        // 1. Guardar sesión (Histórico del día)
         const sesionId = await dbWorkout.sesiones.add({
           fecha: new Date().toISOString(),
           duracion: displayText
         });
 
-        // 2. Preparar series
+        // 2. Guardar series del día
         const seriesParaGuardar = [];
         ejerciciosValidos.forEach(ej => {
           ej.series.forEach(s => {
@@ -174,14 +194,13 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         });
 
-        // 3. Guardar en lote
         if (seriesParaGuardar.length > 0) {
           await dbWorkout.series.bulkAdd(seriesParaGuardar);
         }
 
-        alert('¡Entrenamiento guardado con éxito!');
+        alert('¡Entrenamiento del día guardado con éxito!');
         
-        // 4. Limpiar UI
+        // 3. Limpiar UI (La rutina en la BD NO se borra)
         sesionActual.ejercicios = [];
         renderizarSesion();
         
@@ -194,12 +213,13 @@ document.addEventListener('DOMContentLoaded', () => {
         nuevoBtnCronoStop.style.display = 'none';
 
       } catch (err) {
-        console.error("Error al guardar en Dexie:", err);
-        alert('Error al guardar el entrenamiento. Revisa la consola.');
+        console.error("Error al guardar:", err);
+        alert('Error al guardar el entrenamiento.');
       }
     });
   }
 
-  // Renderizar al cargar
+  // Inicialización
+  cargarListaRutinas();
   renderizarSesion();
 });
