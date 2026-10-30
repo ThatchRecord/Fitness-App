@@ -361,3 +361,6 @@ input[type="number"]:focus, select:focus {
   font-weight: bold;
   margin-top: 4px;
 }
+canvas {
+  max-width: 100%;
+}
