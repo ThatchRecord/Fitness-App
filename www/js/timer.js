@@ -163,7 +163,7 @@ if (btnStopAlarm) {
   btnStopAlarm.addEventListener('click', detenerAlarma);
 }
 
-// --- 4. Lógica del Cronómetro ---
+// --- Lógica del Cronómetro ---
 let cronoStartTime = 0;
 let cronoAccumulated = 0;
 let cronoInterval = null;
@@ -191,34 +191,39 @@ if (btnCronoStart) {
   btnCronoStart.addEventListener('click', () => {
     desbloquearAudio();
     if (cronoRunning) {
+      // Pausar
       cronoAccumulated += Date.now() - cronoStartTime;
       clearInterval(cronoInterval);
       cronoRunning = false;
       btnCronoStart.textContent = '▶ Reanudar';
-      btnCronoStop.style.display = 'block';
+      btnCronoStop.style.display = 'block'; // Mostrar botón de detener
     } else {
+      // Iniciar o Reanudar
       cronoStartTime = Date.now();
       cronoInterval = setInterval(updateCronoDisplay, 1000);
       cronoRunning = true;
       btnCronoStart.textContent = '⏸ Pausar';
-      btnCronoStop.style.display = 'none';
+      btnCronoStop.style.display = 'block'; // Mostrar botón de detener siempre
       updateCronoDisplay();
     }
   });
 }
 
-if (btnCronoStop) {
-  btnCronoStop.addEventListener('click', () => {
-    clearInterval(cronoInterval);
-    cronoRunning = false;
-    const finalTime = cronoAccumulated + (Date.now() - cronoStartTime);
-    alert(`Entrenamiento guardado: ${formatTime(finalTime)}`);
-    cronoAccumulated = 0;
-    cronoDisplay.textContent = '00:00:00';
-    btnCronoStart.textContent = '▶ Iniciar';
-    btnCronoStop.style.display = 'none';
-  });
-}
+// Exponemos esta función para que workout.js la use al guardar la sesión
+window.finalizarCronometro = function() {
+  clearInterval(cronoInterval);
+  cronoRunning = false;
+  const finalTime = cronoAccumulated + (Date.now() - cronoStartTime);
+  const tiempoFormateado = formatTime(finalTime);
+  
+  // Resetear UI
+  cronoAccumulated = 0;
+  cronoDisplay.textContent = '00:00:00';
+  btnCronoStart.textContent = '▶ Iniciar';
+  btnCronoStop.style.display = 'none';
+  
+  return tiempoFormateado;
+};
 
 // --- 5. Lógica del Temporizador de Descanso ---
 let timerInterval = null;
