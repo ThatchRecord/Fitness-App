@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#0f0f10">
   <title>Mi Fitness</title>
   <link rel="stylesheet" href="css/styles.css">
+  <!-- Librería para los gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <main id="app">
@@ -60,7 +62,7 @@
           <button type="button" id="btn-borrar-rutina" class="btn-small btn-danger" style="padding: 0 12px; background: #ef4444; color: white; border: none; font-size: 16px;">🗑️</button>
         </div>
 
-        <!-- Botón Guardar Rutina (Ahora verde) -->
+        <!-- Botón Guardar Rutina -->
         <button type="button" id="btn-guardar-rutina" class="btn-primary" style="width: 100%; margin-bottom: 16px; font-size: 14px; padding: 10px;">💾 Guardar estos ejercicios como Rutina</button>
 
         <!-- Añadir Ejercicio Manual -->
@@ -132,7 +134,32 @@
     <!-- PESTAÑA: PROGRESO -->
     <section class="view" data-view="progreso">
       <h1>Progreso</h1>
-      <p class="placeholder">Aquí irán los gráficos de progresión.</p>
+      
+      <div class="card">
+        <label for="select-metrica">Métrica a visualizar</label>
+        <select id="select-metrica" style="margin-bottom: 12px; background: var(--bg);">
+          <option value="peso">Peso corporal (Real vs PAE)</option>
+          <option value="duracion">Duración del entrenamiento</option>
+          <option value="fuerza">Fuerza (Progresión por ejercicio)</option>
+        </select>
+
+        <!-- Selector de ejercicio (solo visible para Fuerza) -->
+        <div id="container-select-ejercicio" style="display: none;">
+          <label for="select-ejercicio-fuerza">Selecciona el ejercicio</label>
+          <select id="select-ejercicio-fuerza" style="margin-bottom: 12px; background: var(--bg);">
+            <option value="">Cargando ejercicios...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Contenedor del gráfico -->
+      <div class="card" style="position: relative; height: 350px; width: 100%;">
+        <canvas id="progressChart"></canvas>
+      </div>
+      
+      <p id="chart-mensaje" class="placeholder" style="text-align: center; font-size: 14px; display: none;">
+        No hay suficientes datos para mostrar este gráfico. ¡Sigue registrando tus entrenamientos y medidas!
+      </p>
     </section>
 
     <!-- PESTAÑA: AJUSTES -->
@@ -175,6 +202,7 @@
   <script src="js/pae.js"></script>
   <script src="js/timer.js"></script>
   <script src="js/workout.js"></script>
+  <script src="js/charts.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
