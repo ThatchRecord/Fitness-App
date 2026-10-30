@@ -51,16 +51,17 @@
       <div class="card" style="margin-top: 24px;">
         <h2>📝 Registro de series</h2>
         
-        <!-- Selector de Rutinas -->
-        <div class="input-group" style="margin-bottom: 16px; background: var(--surface-2); padding: 12px; border-radius: 8px;">
+        <!-- Selector de Rutinas y Botón de Borrar -->
+        <div class="input-group" style="margin-bottom: 16px; background: var(--surface-2); padding: 12px; border-radius: 8px; display: flex; gap: 8px;">
           <select id="select-rutina" style="flex: 1; margin-top: 0; background: var(--bg);">
             <option value="">Cargar rutina guardada...</option>
           </select>
           <button type="button" id="btn-cargar-rutina" class="btn-small btn-outline">Cargar</button>
+          <button type="button" id="btn-borrar-rutina" class="btn-small btn-danger" style="padding: 0 12px; background: #ef4444; color: white; border: none; font-size: 16px;">🗑️</button>
         </div>
 
-        <!-- Botón Guardar Rutina -->
-        <button type="button" id="btn-guardar-rutina" class="btn-secondary" style="width: 100%; margin-bottom: 16px; font-size: 14px; padding: 10px;">💾 Guardar estos ejercicios como Rutina</button>
+        <!-- Botón Guardar Rutina (Ahora verde) -->
+        <button type="button" id="btn-guardar-rutina" class="btn-primary" style="width: 100%; margin-bottom: 16px; font-size: 14px; padding: 10px;">💾 Guardar estos ejercicios como Rutina</button>
 
         <!-- Añadir Ejercicio Manual -->
         <div class="input-group">
