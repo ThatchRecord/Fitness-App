@@ -50,13 +50,27 @@
       <!-- REGISTRO DE SERIES -->
       <div class="card" style="margin-top: 24px;">
         <h2>📝 Registro de series</h2>
-        <div class="input-group">
-          <input type="text" id="nuevo-ejercicio-nombre" placeholder="Nombre del ejercicio (ej. Press Banca)">
-          <button type="button" id="btn-add-ejercicio" style="background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">+</button>
+        
+        <!-- Selector de Rutinas -->
+        <div class="input-group" style="margin-bottom: 16px; background: var(--surface-2); padding: 12px; border-radius: 8px;">
+          <select id="select-rutina" style="flex: 1; margin-top: 0; background: var(--bg);">
+            <option value="">Cargar rutina guardada...</option>
+          </select>
+          <button type="button" id="btn-cargar-rutina" class="btn-small btn-outline">Cargar</button>
         </div>
+
+        <!-- Botón Guardar Rutina -->
+        <button type="button" id="btn-guardar-rutina" class="btn-secondary" style="width: 100%; margin-bottom: 16px; font-size: 14px; padding: 10px;">💾 Guardar estos ejercicios como Rutina</button>
+
+        <!-- Añadir Ejercicio Manual -->
+        <div class="input-group">
+          <input type="text" id="nuevo-ejercicio-nombre" placeholder="Añadir ejercicio manualmente...">
+          <button type="button" id="btn-add-ejercicio" style="background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: bold; padding: 0 16px; font-size: 24px;">+</button>
+        </div>
+
         <div id="lista-ejercicios-sesion">
           <!-- Aquí se inyectarán los ejercicios añadidos -->
-          <p class="placeholder" style="font-size: 14px;">Añade un ejercicio para empezar a registrar series.</p>
+          <p class="placeholder" style="font-size: 14px;">Carga una rutina o añade ejercicios manualmente.</p>
         </div>
       </div>
     </section>
