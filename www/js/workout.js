@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // --- Base de Datos ---
   const dbWorkout = new Dexie('FitnessAppDB');
   dbWorkout.version(3).stores({
     medidas: '++id, fecha',
@@ -9,12 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let sesionActual = { ejercicios: [] };
 
+  // --- Elementos del DOM ---
   const listaEjerciciosSesion = document.getElementById('lista-ejercicios-sesion');
   const inputNuevoEjercicio = document.getElementById('nuevo-ejercicio-nombre');
   const btnAddEjercicio = document.getElementById('btn-add-ejercicio');
   const btnCronoStop = document.getElementById('btn-crono-stop');
   
-  // Elementos de Rutinas
   const selectRutina = document.getElementById('select-rutina');
   const btnCargarRutina = document.getElementById('btn-cargar-rutina');
   const btnGuardarRutina = document.getElementById('btn-guardar-rutina');
@@ -75,14 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 2. Añadir Ejercicio Manual ---
-  btnAddEjercicio.addEventListener('click', (e) => {
-    e.preventDefault();
-    const nombre = inputNuevoEjercicio.value.trim();
-    if (!nombre) return;
-    sesionActual.ejercicios.push({ nombre, series: [{ peso: '', reps: '', rir: '' }] });
-    inputNuevoEjercicio.value = '';
-    renderizarSesion();
-  });
+  if (btnAddEjercicio) {
+    btnAddEjercicio.addEventListener('click', (e) => {
+      e.preventDefault();
+      const nombre = inputNuevoEjercicio.value.trim();
+      if (!nombre) return;
+      sesionActual.ejercicios.push({ nombre, series: [{ peso: '', reps: '', rir: '' }] });
+      inputNuevoEjercicio.value = '';
+      renderizarSesion();
+    });
+  }
 
   window.actualizarSerie = (indexEj, indexSerie, campo, valor) => {
     sesionActual.ejercicios[indexEj].series[indexSerie][campo] = valor;
@@ -95,66 +98,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 3. Lógica de Rutinas ---
   async function cargarListaRutinas() {
-    const rutinas = await dbWorkout.rutinas.toArray();
-    selectRutina.innerHTML = '<option value="">Cargar rutina guardada...</option>';
-    rutinas.forEach(r => {
-      const opt = document.createElement('option');
-      opt.value = r.id;
-      opt.textContent = r.nombre;
-      selectRutina.appendChild(opt);
-    });
+    try {
+      const rutinas = await dbWorkout.rutinas.toArray();
+      console.log("Rutinas encontradas en la BD:", rutinas); // Depuración
+      
+      // Limpiamos el selector manteniendo la opción por defecto
+      selectRutina.innerHTML = '<option value="">Cargar rutina guardada...</option>';
+      
+      if (rutinas.length === 0) {
+        console.log("No hay rutinas guardadas aún.");
+      }
+
+      rutinas.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.nombre;
+        selectRutina.appendChild(opt);
+      });
+    } catch (error) {
+      console.error("Error al cargar la lista de rutinas:", error);
+    }
   }
 
   // Guardar la sesión actual como Rutina
-  btnGuardarRutina.addEventListener('click', async () => {
-    if (sesionActual.ejercicios.length === 0) {
-      alert("Añade al menos un ejercicio para guardar una rutina.");
-      return;
-    }
-    
-    const nombreRutina = prompt("Nombre para esta rutina (ej. Día de Pecho):");
-    if (!nombreRutina) return;
+  if (btnGuardarRutina) {
+    btnGuardarRutina.addEventListener('click', async () => {
+      if (sesionActual.ejercicios.length === 0) {
+        alert("Añade al menos un ejercicio para guardar una rutina.");
+        return;
+      }
+      
+      const nombreRutina = prompt("Nombre para esta rutina (ej. Día de Pecho):");
+      if (!nombreRutina) return;
 
-    // Solo guardamos los nombres de los ejercicios, NO los pesos ni las reps.
-    const nombresEjercicios = sesionActual.ejercicios.map(e => e.nombre);
+      const nombresEjercicios = sesionActual.ejercicios.map(e => e.nombre);
 
-    try {
-      await dbWorkout.rutinas.add({
-        nombre: nombreRutina,
-        ejercicios: nombresEjercicios
-      });
-      alert("Rutina guardada. La próxima vez podrás cargarla en blanco.");
-      cargarListaRutinas();
-    } catch (err) {
-      console.error(err);
-      alert("Error al guardar la rutina.");
-    }
-  });
+      try {
+        // Guardamos en la BD
+        await dbWorkout.rutinas.add({
+          nombre: nombreRutina,
+          ejercicios: nombresEjercicios
+        });
+        
+        alert("Rutina guardada correctamente.");
+        
+        // CRUCIAL: Esperar un momento a que IndexedDB confirme y recargar la lista
+        setTimeout(() => {
+          cargarListaRutinas();
+        }, 100);
+        
+      } catch (err) {
+        console.error("Error al guardar rutina:", err);
+        alert("Error al guardar la rutina.");
+      }
+    });
+  }
 
   // Cargar una Rutina desde la base de datos
-  btnCargarRutina.addEventListener('click', async () => {
-    const id = parseInt(selectRutina.value);
-    if (!id) {
-      alert("Selecciona una rutina de la lista.");
-      return;
-    }
+  if (btnCargarRutina) {
+    btnCargarRutina.addEventListener('click', async () => {
+      const id = parseInt(selectRutina.value);
+      if (!id) {
+        alert("Selecciona una rutina de la lista.");
+        return;
+      }
 
-    try {
-      const rutina = await dbWorkout.rutinas.get(id);
-      
-      // Sobrescribimos la sesión actual con los ejercicios de la rutina
-      // y les ponemos las series en blanco
-      sesionActual.ejercicios = rutina.ejercicios.map(nombre => ({
-        nombre: nombre,
-        series: [{ peso: '', reps: '', rir: '' }]
-      }));
-      
-      renderizarSesion();
-    } catch (err) {
-      console.error(err);
-      alert("Error al cargar la rutina.");
-    }
-  });
+      try {
+        const rutina = await dbWorkout.rutinas.get(id);
+        console.log("Rutina seleccionada:", rutina); // Depuración
+        
+        if (rutina && rutina.ejercicios) {
+          // Sobrescribimos la sesión actual
+          sesionActual.ejercicios = rutina.ejercicios.map(nombre => ({
+            nombre: nombre,
+            series: [{ peso: '', reps: '', rir: '' }]
+          }));
+          
+          renderizarSesion();
+        }
+      } catch (err) {
+        console.error("Error al cargar rutina:", err);
+        alert("Error al cargar la rutina.");
+      }
+    });
+  }
 
   // --- 4. Guardar la Sesión Histórica (Cronómetro) ---
   if (btnCronoStop) {
@@ -172,13 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       try {
-        // 1. Guardar sesión (Histórico del día)
         const sesionId = await dbWorkout.sesiones.add({
           fecha: new Date().toISOString(),
           duracion: displayText
         });
 
-        // 2. Guardar series del día
         const seriesParaGuardar = [];
         ejerciciosValidos.forEach(ej => {
           ej.series.forEach(s => {
@@ -200,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         alert('¡Entrenamiento del día guardado con éxito!');
         
-        // 3. Limpiar UI (La rutina en la BD NO se borra)
         sesionActual.ejercicios = [];
         renderizarSesion();
         
