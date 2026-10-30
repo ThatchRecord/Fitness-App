@@ -1,9 +1,12 @@
 (() => {
   // --- 1. Base de Datos (Dexie) ---
   const db = new Dexie('FitnessAppDB');
-  db.version(2).stores({
-    medidas: '++id, fecha' // '++id' es autoincremental
-  });
+db.version(3).stores({
+  medidas: '++id, fecha',
+  sesiones: '++id, fecha',
+  series: '++id, sesionId, ejercicio',
+  rutinas: '++id, nombre' // NUEVA TABLA
+});
 
   // --- 2. Navegación ---
   const tabs = document.querySelectorAll('.tab');
